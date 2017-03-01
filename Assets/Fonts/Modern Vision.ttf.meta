@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: dc80b3a9458c31b4abc108a8b2eb19f8
+timeCreated: 1487277251
+licenseType: Pro
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Modern Vision
+  fontNames:
+  - Modern Vision
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
