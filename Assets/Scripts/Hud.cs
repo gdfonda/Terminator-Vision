@@ -23,7 +23,7 @@ public class Hud : MonoBehaviour
     System.Threading.Timer _timer;
     IEnumerator coroutine;
 
-    string _subscriptionKey = "b1e514ef0f5b493d912b56a509e718c5";
+    string _subscriptionKey = "< Computer Vision Key goes here !!!>";
     string _computerVisionEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=Tags,Faces";
     string _ocrEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr";
 
