@@ -20,7 +20,6 @@ public class Hud : MonoBehaviour
     public Text DiagnosticPanel;
 
     PhotoCapture _photoCaptureObject = null;
-    System.Threading.Timer _timer;
     IEnumerator coroutine;
 
     string _subscriptionKey = "b1e514ef0f5b493d912b56a509e718c5";
