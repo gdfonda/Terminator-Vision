@@ -38,14 +38,16 @@ public class Hud : MonoBehaviour
         AnalysisPanel.text = "ANALYSIS:\n**************\ntest\ntest\ntest";
         ThreatAssessmentPanel.text = "SCAN MODE XXXXX\nINITIALIZE";
         InfoPanel.text = "CONNECTING";
-        int secondsInterval = 20;
-        _timer = new System.Threading.Timer(Tick, null, 0, secondsInterval * 1000);
-
+        StartCoroutine(CoroLoop());
     }
 
-    private void Tick(object state)
+    IEnumerator CoroLoop()
     {
-        AnalyzeScene();
+		int secondsInterval = 20;
+		while (true) {
+			AnalyzeScene();
+			yield return new WaitForSeconds(secondsInterval);
+		}
     }
 
 
