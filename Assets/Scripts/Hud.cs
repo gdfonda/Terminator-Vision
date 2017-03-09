@@ -20,7 +20,6 @@ public class Hud : MonoBehaviour
     public Text DiagnosticPanel;
 
     PhotoCapture _photoCaptureObject = null;
-    System.Threading.Timer _timer;
     IEnumerator coroutine;
 
     string _subscriptionKey = "< Computer Vision Key goes here !!!>";
