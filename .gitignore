@@ -23,6 +23,10 @@ ExportedObj/
 *.svd
 *.pdb
 
+# HoloToolkit files
+/Assets/HoloToolkit/
+/WindowsStoreApp/
+
 
 # Unity3D generated meta files
 *.pidb.meta
