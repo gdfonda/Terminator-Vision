@@ -26,6 +26,7 @@ ExportedObj/
 # HoloToolkit files
 /Assets/HoloToolkit/
 /WindowsStoreApp/
+/Assets/HoloToolkit.meta
 
 
 # Unity3D generated meta files
