@@ -22,7 +22,7 @@ public class Hud : MonoBehaviour
     PhotoCapture _photoCaptureObject = null;
     IEnumerator coroutine;
 
-    string _subscriptionKey = "< Computer Vision Key goes here !!!>";
+    public string _subscriptionKey = "< Computer Vision Key goes here !!!>";
     string _computerVisionEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=Tags,Faces";
     string _ocrEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr";
 
@@ -201,8 +201,8 @@ public class Hud : MonoBehaviour
 
         List<string> words = new List<string>();
         var jsonResults = www.text;
-        var myObject = JsonUtility.FromJson<OcrResults>(jsonResults);
-        foreach (var region in myObject.regions)
+        var ocrResults = JsonUtility.FromJson<OcrResults>(jsonResults);
+        foreach (var region in ocrResults.regions)
         foreach (var line in region.lines)
         foreach (var word in line.words)
         {
@@ -210,9 +210,17 @@ public class Hud : MonoBehaviour
         }
 
         string textToRead = string.Join(" ", words.ToArray());
+
         if (textToRead.Length > 0)
         {
-            DiagnosticPanel.text = "(language=" + myObject.language + ")\n" + textToRead;
+            DiagnosticPanel.text = "(language=" + ocrResults.language + ")\n" + textToRead;
+            if (ocrResults.language.ToLower() == "en")
+            {
+                textToSpeechManager.SpeakText(textToRead);
+            }
+        }else
+        {
+            DiagnosticPanel.text = string.Empty;
         }
        
 
