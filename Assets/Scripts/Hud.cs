@@ -22,7 +22,7 @@ public class Hud : MonoBehaviour
     PhotoCapture _photoCaptureObject = null;
     IEnumerator coroutine;
 
-    string _subscriptionKey = "< Computer Vision Key goes here !!!>";
+    public string _subscriptionKey = "< Computer Vision Key goes here !!!>";
     string _computerVisionEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=Tags,Faces";
     string _ocrEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr";
 
@@ -213,6 +213,7 @@ public class Hud : MonoBehaviour
         if (textToRead.Length > 0)
         {
             DiagnosticPanel.text = "(language=" + myObject.language + ")\n" + textToRead;
+            textToSpeechManager.SpeakText(textToRead);
         }
        
 
