@@ -1155,7 +1155,7 @@ MonoBehaviour:
   AnalysisPanel: {fileID: 437830105}
   ThreatAssessmentPanel: {fileID: 1172334418}
   DiagnosticPanel: {fileID: 197177529}
-  _subscriptionKey: 0b517ea922be4947b5239b9415bfcae8
+  _subscriptionKey: 
   textToSpeechManager: {fileID: 1821548904}
 --- !u!1 &1821548902
 GameObject:
