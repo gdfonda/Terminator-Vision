@@ -26,9 +26,9 @@ See the Windows Blog [post](https://blogs.windows.com/buildingapps/2017/03/06/bu
 
 5. Now we need to turn on some capabilities in order to allow the REST calls and photo capture to work. Press "Player Settings...". In the inspector, on the Microsoft Store tab, expand out the Publishing Settings. In the capabilities section turn on the following:
 
-  * InternetClient
-  * InternetClientServer
-  * WebCam 
+       * InternetClient
+       * InternetClientServer
+       * WebCam 
 
 6. Create a *WindowsStoreApp* folder in your project root directory and Build to it
 
