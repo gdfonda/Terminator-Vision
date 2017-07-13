@@ -20,6 +20,7 @@ public class Hud : MonoBehaviour
     public Text DiagnosticPanel;
 
     PhotoCapture _photoCaptureObject = null;
+    Resolution _cameraResolution;
     IEnumerator coroutine;
 
     public string _subscriptionKey = "< Computer Vision Key goes here !!!>";
@@ -54,12 +55,12 @@ public class Hud : MonoBehaviour
     {
         _photoCaptureObject = captureObject;
 
-        Resolution cameraResolution = PhotoCapture.SupportedResolutions.OrderByDescending((res) => res.width * res.height).First();
+        _cameraResolution = PhotoCapture.SupportedResolutions.OrderByDescending((res) => res.width * res.height).First();
 
         CameraParameters c = new CameraParameters();
         c.hologramOpacity = 0.0f;
-        c.cameraResolutionWidth = cameraResolution.width;
-        c.cameraResolutionHeight = cameraResolution.height;
+        c.cameraResolutionWidth = _cameraResolution.width;
+        c.cameraResolutionHeight = _cameraResolution.height;
         c.pixelFormat = CapturePixelFormat.BGRA32;
 
         captureObject.StartPhotoModeAsync(c, OnPhotoModeStarted);
@@ -76,12 +77,7 @@ public class Hud : MonoBehaviour
     {
         if (result.success)
         {
-            string filename = string.Format(@"terminator_analysis.jpg");
-            string filePath = System.IO.Path.Combine(Application.persistentDataPath, filename);
-
-            //doing this to get formatted image
-            _photoCaptureObject.TakePhotoAsync(filePath, PhotoCaptureFileOutputFormat.JPG, OnCapturedPhotoToDisk);
-
+            _photoCaptureObject.TakePhotoAsync(OnCapturePhotoToMemory);
         }
         else
         {
@@ -90,17 +86,16 @@ public class Hud : MonoBehaviour
         }
     }
 
-    void OnCapturedPhotoToDisk(PhotoCapture.PhotoCaptureResult result)
+    void OnCapturePhotoToMemory(PhotoCapture.PhotoCaptureResult result, PhotoCaptureFrame frame)
     {
         if (result.success)
         {
-            string filename = string.Format(@"terminator_analysis.jpg");
-            string filePath = System.IO.Path.Combine(Application.persistentDataPath, filename);
+            var texture = new Texture2D(_cameraResolution.width, _cameraResolution.height);
+            frame.UploadImageDataToTexture(texture);
 
-            byte[] image = File.ReadAllBytes(filePath);
+            byte[] image = texture.EncodeToPNG();
             GetTagsAndFaces(image);
             ReadWords(image);
-
         }
         else
         {
@@ -108,13 +103,6 @@ public class Hud : MonoBehaviour
             InfoPanel.text = "ABORT";
         }
         _photoCaptureObject.StopPhotoModeAsync(OnStoppedPhotoMode);
-    }
-
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
     void AnalyzeScene()
