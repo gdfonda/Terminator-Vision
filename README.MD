@@ -8,34 +8,37 @@ See the Windows Blog [post](https://blogs.windows.com/buildingapps/2017/03/06/bu
 
 *Some setup instructions*
 
-(When you open the project in Unity the first time, you are probably going to see errors like HoloToolkit cannot be found or File type unknown. Here's how you're going to fix that.)
+1. [Sign up](https://www.microsoft.com/cognitive-services) for a  Cognitive Services account and generate a subscription key for the Computer Vision API.   
+If you already have an Azure account you can skip that and setup a Computer Vision App directly in your Azure subscription. To do that go directly to the [Azure portal](https://portal.azure.com).
 
-1. Make sure you cloned this repository with the --recursive flag. This will also get the appropriate version of the MRTK.
+2. Clone this repository with the **--recursive** flag. This will also get the appropriate version of the MRTK in the root folder for this project.
 
-2. Open a command prompt, navigate to the project folder and execute this command:
+3. Open a command prompt, navigate to the root folder for this project and execute this command:
 
+   ```shell
    mklink /j .\Assets\HoloToolkit .\MixedRealityToolkit-Unity\Assets\HoloToolkit
+   ```
 
-   This is create a linked folder to the HoloToolkit in the Assets folder of the project.
+   This will create a linked folder to the HoloToolkit in the Assets folder of the project. Now the MRTK is included in the project.
 
-3. Set the project settings using the Mixed Reality Toolkit menu [Configure - Apply Mixed Reality Project Settings]
+4. Open the root folder of the project in Unity
 
-4. Open the Build Settings dialog (File | Build Settings)
+5. Open the **main** scene, which you kind find in the root of the Assets folder
 
-5. Click on Add Open Scenes to add the *main* scene to your build
+6. Select the **HUD** game object in the hierarchy and enter these fields for the *Hud* script:
+	* **Computer Vision key**  
+      Get a key from the Keys page under Resource Management for your Computer Vision app in the Azure portal you created in step 1.
+	* **Computer Vision Endpoint**  
+     The endpoint for your Computer Vision app in the Azure portal created in step 1. This can be found on the Overview page.
 
-6. Build the UWP app. Create a new folder called Builds and select it.
+7. Set the project settings using the Mixed Reality Toolkit menu *Configure - Apply Mixed Reality Project Settings*. Keep the defaults selected and click Apply.
 
-7. Errors should be gone now, but if they aren't just shut down and re-open your Unity project
+8. Open the Build Settings dialog *File | Build Settings*. Click on Add Open Scenes to add the **main** scene to your build.
 
-8. [Sign up](https://www.microsoft.com/cognitive-services) for a  Cognitive Services account and generate a subscription key for the Computer Vision API
+9. Build the UWP app from the Build Settings dialog. Create a new folder called Builds and select it.
 
-9. In the Hud game object you must set 2 settings:
-	* Computer Vision key
-	* Your Azure endpoint for Computer Vision
+10. Open the solution in the Builds folder with Visual Studio.
 
-10. Rebuild and deploy the project to your Hololens  
+11. Set the configuration in the top bar to Debug and x86. Select Device if your Hololens is connected with a cable, Remote Machine if it's connected over WiFi or the Hololens Emulator.
 
-
-	
-
+12. Build the solution in Visual Studio and deploy to your Hololens.

@@ -11,6 +11,8 @@ public class TextTyper : MonoBehaviour
     // Text for the message to display
     private Text TextControl;
 
+    private bool _isTyping = false;
+
     // Use this for initialization
     void Start()
     {
@@ -19,9 +21,13 @@ public class TextTyper : MonoBehaviour
 
     public void TypeText(string text, bool refresh = true)
     {
-        Message = text;
-        if (refresh) TextControl.text = "";
-        StartCoroutine(TypeText());
+        if (!_isTyping)
+        {
+            _isTyping = true;
+            Message = text;
+            if (refresh) TextControl.text = "";
+            StartCoroutine(TypeText());
+        }
     }
 
     IEnumerator TypeText()
@@ -32,5 +38,6 @@ public class TextTyper : MonoBehaviour
             yield return 0;
             yield return new WaitForSeconds(LetterDelay);
         }
+        _isTyping = false;
     }
 }
