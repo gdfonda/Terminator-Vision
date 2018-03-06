@@ -274,11 +274,17 @@ public class Hud : MonoBehaviour
 
     private string getFacesUrl()
     {
-        return _computerVisionEndpoint + _facesParameters;
+        string url = _computerVisionEndpoint;
+        if (!url.EndsWith("/")) url += "/";
+        url += _facesParameters;
+        return url;
     }
 
     private string getOcrUrl()
     {
-        return _computerVisionEndpoint + _ocrParameters;
+        string url = _computerVisionEndpoint;
+        if (!url.EndsWith("/")) url += "/";
+        url += _ocrParameters;
+        return url;
     }
 }
