@@ -5,55 +5,81 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.VR.WSA.WebCam;
 using UnityEngine.Windows;
+using UnityEngine.XR.WSA.WebCam;
 
 public class Hud : MonoBehaviour
 {
-
     public Text InfoPanel;
     public Text AnalysisPanel;
     public Text ThreatAssessmentPanel;
     public Text DiagnosticPanel;
 
+    private TextTyper InfoPanelTyper;
+    private TextTyper AnalysisPanelTyper;
+    private TextTyper ThreatAssessmentPanelTyper;
+    private TextTyper DiagnosticsPanelTyper;
+
     PhotoCapture _photoCaptureObject = null;
     IEnumerator coroutine;
 
-    public string _subscriptionKey = "< Computer Vision Key goes here !!!>";
-    string _computerVisionEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/analyze?visualFeatures=Tags,Faces";
-    string _ocrEndpoint = "https://westus.api.cognitive.microsoft.com/vision/v1.0/ocr";
+    [Header("Number of seconds between snapshots")]
+    [Range(10, 60)]
+    public int _loopSeconds = 20;
 
-    public TextToSpeechManager textToSpeechManager;
+    [Header("Computer Vision Key")]
+    [Tooltip("You can find the key in the Azure portal under Keys for your Computer Vision setup")]
+    public string _computerVisionKey = "-your key goes here-";
+
+    [Header("Your Azure endpoint for Computer Vision")]
+    [Tooltip("You can find the endpoint in the Azure portal under Overview for your Computer Vision setup")]
+    public string _computerVisionEndpoint = "https://westeurope.api.cognitive.microsoft.com/vision/v1.0/";
+
+    private const string _facesParameters = "analyze?visualFeatures=Tags,Faces,Description";
+    private const string _ocrParameters = "ocr";
+
+    private TextToSpeech textToSpeechManager;
 
     void Start()
     {
-
+        // check if we have all the input we need
         if (AnalysisPanel == null || ThreatAssessmentPanel == null || InfoPanel == null)
             return;
 
-        AnalysisPanel.text = "ANALYSIS:\n**************\ntest\ntest\ntest";
-        ThreatAssessmentPanel.text = "SCAN MODE XXXXX\nINITIALIZE";
-        InfoPanel.text = "CONNECTING";
+        // get the speech manager
+        textToSpeechManager = GetComponent<TextToSpeech>();
+
+        // set the 'typers' for the various output
+        InfoPanelTyper = InfoPanel.GetComponent<TextTyper>();
+        AnalysisPanelTyper = AnalysisPanel.GetComponent<TextTyper>();
+        ThreatAssessmentPanelTyper = ThreatAssessmentPanel.GetComponent<TextTyper>();
+        DiagnosticsPanelTyper = DiagnosticPanel.GetComponent<TextTyper>();
+
+        // show initialization in the UI
+        AnalysisPanelTyper.TypeText("ANALYSIS:\n**************\nInitializing");
+        ThreatAssessmentPanelTyper.TypeText("SCAN MODE XXXXX\nINITIALIZE");
+        InfoPanelTyper.TypeText("CONNECTING");
+
+        // Start the picture taking loop
         StartCoroutine(CoroLoop());
     }
 
     IEnumerator CoroLoop()
     {
-		int secondsInterval = 20;
-		while (true) {
-			AnalyzeScene();
-			yield return new WaitForSeconds(secondsInterval);
-		}
+        while (true)
+        {
+            yield return new WaitForSeconds(_loopSeconds);
+            AnalyzeScene();
+        }
     }
-
 
     void OnPhotoCaptureCreated(PhotoCapture captureObject)
     {
         _photoCaptureObject = captureObject;
 
+        // find the best supported resolution
         Resolution cameraResolution = PhotoCapture.SupportedResolutions.OrderByDescending((res) => res.width * res.height).First();
 
         CameraParameters c = new CameraParameters();
@@ -62,8 +88,21 @@ public class Hud : MonoBehaviour
         c.cameraResolutionHeight = cameraResolution.height;
         c.pixelFormat = CapturePixelFormat.BGRA32;
 
+        // start the capture
         captureObject.StartPhotoModeAsync(c, OnPhotoModeStarted);
+    }
 
+    private void OnPhotoModeStarted(PhotoCapture.PhotoCaptureResult result)
+    {
+        if (result.success)
+        {       // take the picture
+            _photoCaptureObject.TakePhotoAsync(OnCapturedPhotoToMemory);
+        }
+        else
+        {       // couldn't take the picture. Show an error
+            InfoPanelTyper.TypeText("ABORT");
+            DiagnosticsPanelTyper.TypeText("Say: Unable to start photo mode! Hasta la vista, baby.", true);
+        }
     }
 
     void OnStoppedPhotoMode(PhotoCapture.PhotoCaptureResult result)
@@ -72,157 +111,180 @@ public class Hud : MonoBehaviour
         _photoCaptureObject = null;
     }
 
-    private void OnPhotoModeStarted(PhotoCapture.PhotoCaptureResult result)
+    private void OnCapturedPhotoToMemory(PhotoCapture.PhotoCaptureResult result, PhotoCaptureFrame photoCaptureFrame)
     {
         if (result.success)
         {
-            string filename = string.Format(@"terminator_analysis.jpg");
-            string filePath = System.IO.Path.Combine(Application.persistentDataPath, filename);
+            // Create our Texture2D for use and set the correct resolution
+            Resolution cameraResolution = PhotoCapture.SupportedResolutions.OrderByDescending((res) => res.width * res.height).First();
+            Texture2D targetTexture = new Texture2D(cameraResolution.width, cameraResolution.height);
 
-            //doing this to get formatted image
-            _photoCaptureObject.TakePhotoAsync(filePath, PhotoCaptureFileOutputFormat.JPG, OnCapturedPhotoToDisk);
+            // Copy the raw image data into our target texture
+            photoCaptureFrame.UploadImageDataToTexture(targetTexture);
 
+            // encode as JPEG to send to cognitiva service api's
+            var imageBytes = targetTexture.EncodeToJPG();
+
+            // Get information for the image from cognitive services
+            GetTagsAndFaces(imageBytes);
+            ReadWords(imageBytes);
         }
         else
-        {
-            DiagnosticPanel.text = "Say: Unable to start photo mode! Hasta la vista, baby.";
-
+        {       // show error
+            DiagnosticsPanelTyper.TypeText("DIAGNOSTIC\n**************\n\nFailed take picture.\nError: " + result.hResult);
+            InfoPanelTyper.TypeText("ABORT");
         }
-    }
-
-    void OnCapturedPhotoToDisk(PhotoCapture.PhotoCaptureResult result)
-    {
-        if (result.success)
-        {
-            string filename = string.Format(@"terminator_analysis.jpg");
-            string filePath = System.IO.Path.Combine(Application.persistentDataPath, filename);
-
-            byte[] image = File.ReadAllBytes(filePath);
-            GetTagsAndFaces(image);
-            ReadWords(image);
-
-        }
-        else
-        {
-            DiagnosticPanel.text = "DIAGNOSTIC\n**************\n\nFailed to save Photo to disk.";
-            InfoPanel.text = "ABORT";
-        }
+        // stop handling the picture
         _photoCaptureObject.StopPhotoModeAsync(OnStoppedPhotoMode);
-    }
-
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 
     void AnalyzeScene()
     {
-        InfoPanel.text = "CALCULATION PENDING";
+        InfoPanelTyper.TypeText("CALCULATION PENDING");
         PhotoCapture.CreateAsync(false, OnPhotoCaptureCreated);
     }
 
     public void GetTagsAndFaces(byte[] image)
     {
-
         try
         {
             coroutine = RunComputerVision(image);
             StartCoroutine(coroutine);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
-            DiagnosticPanel.text = "DIAGNOSTIC\n**************\n\nGet Tags failed.";
-            InfoPanel.text = "ABORT";
+            DiagnosticsPanelTyper.TypeText("DIAGNOSTIC\n**************\n\nGet Tags failed.\n\n" + ex.Message);
+            InfoPanelTyper.TypeText("ABORT");
         }
     }
 
     public void ReadWords(byte[] image)
     {
-
         try
         {
-            coroutine = Read(image);
+            coroutine = ReadTextInImage(image);
             StartCoroutine(coroutine);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-
-            DiagnosticPanel.text = "DIAGNOSTIC\n**************\n\nRead Words failed.";
-            InfoPanel.text = "ABORT";
+            DiagnosticsPanelTyper.TypeText("DIAGNOSTIC\n**************\n\nRead Words failed.\n\n" + ex.Message);
+            InfoPanelTyper.TypeText("ABORT");
         }
     }
 
     IEnumerator RunComputerVision(byte[] image)
     {
-        var headers = new Dictionary<string, string>() {
-            { "Ocp-Apim-Subscription-Key", _subscriptionKey },
+        var headers = new Dictionary<string, string>()
+        {
+            { "Ocp-Apim-Subscription-Key", _computerVisionKey},
             { "Content-Type", "application/octet-stream" }
         };
 
-        WWW www = new WWW(_computerVisionEndpoint, image, headers);
+        WWW www = new WWW(getFacesUrl(), image, headers);
         yield return www;
 
-        List<string> tags = new List<string>();
-        var jsonResults = www.text;
-        var myObject = JsonUtility.FromJson<AnalysisResult>(jsonResults);
-        foreach (var tag in myObject.tags)
-        {
-            tags.Add(tag.name);
+        if (www.error != null && www.error != "")
+        {       // on error, show information and return
+            InfoPanelTyper.TypeText("ABORT");
+            DiagnosticsPanelTyper.TypeText("ANALYSIS:\n***************\n\n" + www.error);
+            yield break;
         }
-        AnalysisPanel.text = "ANALYSIS:\n***************\n\n" + string.Join("\n", tags.ToArray());
 
-        List<string> faces = new List<string>();
-        foreach (var face in myObject.faces)
+        try
         {
-            faces.Add(string.Format("{0} scanned: age {1}.", face.gender, face.age));
+            var resultObject = JsonUtility.FromJson<AnalysisResult>(www.text);
+
+            // show all the tags returned
+            List<string> tags = new List<string>();
+            foreach (var tag in resultObject.tags)
+            {
+                tags.Add(tag.name);
+            }
+            AnalysisPanelTyper.TypeText("ANALYSIS:\n***************\n\n" + string.Join("\n", tags.ToArray()));
+
+            // show all the faces with age returned
+            List<string> faces = new List<string>();
+            foreach (var face in resultObject.faces)
+            {
+                faces.Add(string.Format("{0} scanned: age {1}.", face.gender, face.age));
+            }
+            if (faces.Count > 0)
+            {
+                InfoPanelTyper.TypeText("MATCH");
+            }
+            else
+            {
+                InfoPanelTyper.TypeText("ACTIVE SPATIAL MAPPING");
+            }
+            ThreatAssessmentPanelTyper.TypeText("SCAN MODE 43984\nTHREAT ASSESSMENT\n\n" + string.Join("\n", faces.ToArray()));
         }
-        if(faces.Count > 0)
-        {
-            InfoPanel.text = "MATCH";
-        }else
-        {
-            InfoPanel.text = "ACTIVE SPATIAL MAPPING";
+        catch (Exception ex)
+        {       // show error details in UI
+            InfoPanelTyper.TypeText("ABORT");
+            DiagnosticsPanelTyper.TypeText("ANALYSIS:\n***************\n\n" + ex.Message);
         }
-        ThreatAssessmentPanel.text = "SCAN MODE 43984\nTHREAT ASSESSMENT\n\n" + string.Join("\n", faces.ToArray());
     }
 
-    IEnumerator Read(byte[] image)
+    IEnumerator ReadTextInImage(byte[] image)
     {
-        var headers = new Dictionary<string, string>() {
-            { "Ocp-Apim-Subscription-Key", _subscriptionKey },
+        var headers = new Dictionary<string, string>()
+        {
+            { "Ocp-Apim-Subscription-Key", _computerVisionKey },
             { "Content-Type", "application/octet-stream" }
         };
 
-        WWW www = new WWW(_ocrEndpoint, image, headers);
+        WWW www = new WWW(getOcrUrl(), image, headers);
         yield return www;
 
+        if (www.error != null && www.error != "")
+        {       // on error, show information and return
+            InfoPanelTyper.TypeText("ABORT");
+            DiagnosticsPanelTyper.TypeText("ANALYSIS:\n***************\n\n" + www.error);
+            yield break;
+        }
+
+        // get the text from the response
         List<string> words = new List<string>();
-        var jsonResults = www.text;
-        var ocrResults = JsonUtility.FromJson<OcrResults>(jsonResults);
-        foreach (var region in ocrResults.regions)
-        foreach (var line in region.lines)
-        foreach (var word in line.words)
+        var resultsObject = JsonUtility.FromJson<OcrResults>(www.text);
+        foreach (var region in resultsObject.regions)
         {
-            words.Add(word.text);
+            foreach (var line in region.lines)
+            {
+                foreach (var word in line.words)
+                {
+                    words.Add(word.text);
+                }
+            }
         }
 
         string textToRead = string.Join(" ", words.ToArray());
-
         if (textToRead.Length > 0)
-        {
-            DiagnosticPanel.text = "(language=" + ocrResults.language + ")\n" + textToRead;
-            if (ocrResults.language.ToLower() == "en")
-            {
-                textToSpeechManager.SpeakText(textToRead);
+        {       // if there is text, also show the language that was determined
+            DiagnosticPanel.text = "(language=" + resultsObject.language + ")\n" + textToRead;
+            if (resultsObject.language.ToLower() == "en")
+            {       // only text to speech if in English (only one supported with local speech engine currently)
+                textToSpeechManager.StartSpeaking(textToRead);
             }
-        }else
-        {
+        }
+        else
+        {       // nothing found, so nothing to show
             DiagnosticPanel.text = string.Empty;
         }
-       
+    }
 
+    private string getFacesUrl()
+    {
+        string url = _computerVisionEndpoint;
+        if (!url.EndsWith("/")) url += "/";
+        url += _facesParameters;
+        return url;
+    }
+
+    private string getOcrUrl()
+    {
+        string url = _computerVisionEndpoint;
+        if (!url.EndsWith("/")) url += "/";
+        url += _ocrParameters;
+        return url;
     }
 }
